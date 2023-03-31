@@ -14,11 +14,81 @@ class MoviesScreen extends StatefulWidget {
 
 class _MoviesScreenState extends State<MoviesScreen> {
   late List<MovieModel> allMovies;
+  late List<MovieModel> searchedForMovies;
+  bool _isSearching = false;
+  final _searchTextController = TextEditingController();
+
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchTextController,
+      cursorColor: MyColors.myGrey,
+      decoration: const InputDecoration(
+          hintText: 'Find a character...',
+          border: InputBorder.none,
+          hintStyle: TextStyle(color: MyColors.myGrey, fontSize: 18)),
+      style: const TextStyle(color: MyColors.myGrey, fontSize: 18),
+      onChanged: (searchedMovie) {
+        addSearchedForItemsToSearchedList(searchedMovie);
+      },
+    );
+  }
+
+  void addSearchedForItemsToSearchedList(String searchedMovie) {
+    searchedForMovies = allMovies
+        .where((movie) => movie.title!.toLowerCase().contains(searchedMovie))
+        .toList();
+
+    setState(() {});
+  }
+
+  List<Widget> _buildAppBarActions() {
+    if (_isSearching) {
+      return [
+        IconButton(
+          onPressed: () {
+            _clearSearch();
+            Navigator.pop(context);
+          },
+          icon: const Icon(Icons.clear, color: MyColors.myGrey),
+        ),
+      ];
+    } else {
+      return [
+        IconButton(
+          onPressed: _startSearch,
+          icon: const Icon(Icons.search, color: MyColors.myGrey),
+        ),
+      ];
+    }
+  }
+
+  void _startSearch() {
+    ModalRoute.of(context)
+        ?.addLocalHistoryEntry(LocalHistoryEntry(onRemove: _stopSearch));
+
+    setState(() {
+      _isSearching = true;
+    });
+  }
+
+  void _stopSearch() {
+    _clearSearch();
+
+    setState(() {
+      _isSearching = false;
+    });
+  }
+
+  void _clearSearch() {
+    setState(() {
+      _searchTextController.clear();
+    });
+  }
 
   @override
   void initState() {
     super.initState();
-    allMovies = BlocProvider.of<MoviesCubit>(context).getMovies();
+    BlocProvider.of<MoviesCubit>(context).getMovies();
   }
 
   Widget buildBlocWidget() {
@@ -66,12 +136,23 @@ class _MoviesScreenState extends State<MoviesScreen> {
         shrinkWrap: true,
         physics: const ClampingScrollPhysics(),
         padding: EdgeInsets.zero,
-        itemCount: allMovies.length,
+        itemCount: _searchTextController.text.isEmpty
+            ? allMovies.length
+            : searchedForMovies.length,
         itemBuilder: (context, index) {
           return MovieItem(
-            movie: allMovies[index],
+            movie: _searchTextController.text.isEmpty
+                ? allMovies[index]
+                : searchedForMovies[index],
           );
         });
+  }
+
+  Widget _buildAppBarTitle() {
+    return const Text(
+      'Movies',
+      style: TextStyle(color: MyColors.myGrey),
+    );
   }
 
   @override
@@ -79,10 +160,13 @@ class _MoviesScreenState extends State<MoviesScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: MyColors.myYellow,
-        title: const Text(
-          'Movies',
-          style: TextStyle(color: MyColors.myGrey),
-        ),
+        leading: _isSearching
+            ? const BackButton(
+                color: MyColors.myGrey,
+              )
+            : Container(),
+        title: _isSearching ? _buildSearchField() : _buildAppBarTitle(),
+        actions: _buildAppBarActions(),
       ),
       body: buildBlocWidget(),
     );
