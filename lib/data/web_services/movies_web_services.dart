@@ -17,7 +17,7 @@ class MoviesWebServices {
 
   Future<List<dynamic>> getMovies() async {
     try {
-      Response response = await dio.get('s=john wick&page=1');
+      Response response = await dio.get('s=james bond&page=1');
       print(response.data["Search"].toString());
       return response.data["Search"];
     } catch (e) {
